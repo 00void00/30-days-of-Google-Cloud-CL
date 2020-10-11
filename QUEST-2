@@ -1,0 +1,53 @@
+login as USERNAME1
+
+TASK 1:
+
+Navigation>Storage>bucket
+  
+  click create bucket
+  set [BUCKET_NAME]
+  location type: region
+  location: us-east1
+  storage class: STANDARD
+  access control: fine-grained
+  encryption: Google-managed key
+  
+  click CREATE
+
+TASK 2:
+
+Navigation>Big Data>Pub/Sub>topics
+  
+  click create topic
+  topic ID: Jooli
+  encryption: Google-managed key
+  CREATE
+  
+TASK 3:
+
+Navigation>Cloud function
+  
+  CREATE FUNCTION
+  name: JooliCF
+  memory allocated: 256MiB
+  Trigger: Cloud Storage
+    select bucket you created in step 2
+  source code: inline editor
+  runtime: Node.js.8
+  function to execute: thumbnail
+  
+  In line 15 of index.js replace the text REPLACE_WITH_YOUR_TOPIC with the Jooli [topic you created in task 2]
+  
+  CREATE
+
+click on the url mentioned, and download that image to upload it in your bucket
+and then click REFRESH BUCKET
+
+TASK 4:
+
+navigation>IAM&ADMIN
+  search for USERNAME2, with viewer role
+  click on 'pencil'
+  click DELETE and then SAVE
+
+USERNAME2 has been removed.
