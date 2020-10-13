@@ -6,8 +6,8 @@ Navigation>Storage>bucket
   
   click create bucket
   set [BUCKET_NAME]
-  location type: region
-  location: us-east1
+  location type: multi-region
+  location: us
   storage class: STANDARD
   access control: fine-grained
   encryption: Google-managed key
@@ -30,10 +30,12 @@ Navigation>Cloud function
   CREATE FUNCTION
   name: JooliCF
   memory allocated: 256MiB
-  Trigger: Cloud Storage
-    select bucket you created in step 2
+  Trigger Type: Cloud Storage
+  Event Type: Finalize/create
+  select bucket you created in step 2
+  click SAVE and then NEXT
   source code: inline editor
-  runtime: Node.js.8
+  runtime: Node.js.10
   function to execute: thumbnail
   
   In line 15 of index.js replace the text REPLACE_WITH_YOUR_TOPIC with the Jooli [topic you created in task 2]
