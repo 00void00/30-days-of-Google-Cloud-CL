@@ -1,0 +1,157 @@
+TASK 1: create development VPC
+
+  from console, navigate to VPC network > VPC networks
+  Click CREATE VPC NETWORK
+  Enter griffin-dev-vpc to the Name field.
+  Select Custom for the Subnet creation mode.
+  
+  Add griffin-dev-wp subnet with the following parameters:
+  Name:	griffin-dev-wp
+  Region:	us-east1
+  IP address range:	192.168.16.0/20
+  
+  Click + Add subnet
+  
+  add griffin-dev-mgmt subnet with the following parameters
+  Name:	griffin-dev-mgmt
+  Region:	us-east1
+  IP address range:	192.168.32.0/20
+  
+  Click Create
+  
+TASK 2: Create production VPC
+
+  open cloud shell
+  Copy the Deployment Manager configuration files 
+  using: gsutil cp -r gs://cloud-training/gsp321/dm ~/
+  then, list the content of the file [ls]
+  search for <prod-network.yaml> to edit
+    replace SET_REGION to us-east1 in the editor and SAVE
+   Go back to the Cloud Shell, create the production VPC network with the configuration files:
+    gcloud deployment-manager deployments create griffin-prod --config prod-netork.yaml
+    
+TASK 3: create bastion host
+  
+  navigate to compute engine>VM instances
+  Click Create.
+  Use the following parameters to create the bastion host:
+  Name:	griffin-dev-db
+  Region:	us-east1
+  
+  Expand the Management, security, disks, networking, sole tenancy section
+  In the Networking tab, add bastion to the Network tags
+  
+  Click Add network interface, make sure that you set up two Network interfaces,
+  griffin-dev-mgmt
+  griffin-prod-mgmt
+  
+  Click Create.
+  
+  Navigate to VPC network>Firewall
+  Click CREATE FIREWALL RULE
+  Configure the rule with the following parameters:
+  Name:	allow-bastion-dev-ssh
+  Network:	griffin-dev-vpc
+  Targets:	bastion
+  Source IP ranges:	192.168.32.0/20
+  Protocols and ports:	tcp: 22
+  
+  Click CREATE
+  
+  Click CREATE FIREWALL RULE again
+  Configure another rule with the following parameters:
+  Name:	allow-bastion-prod-ssh
+  Network:	griffin-prod-vpc
+  Targets:	bastion
+  Source IP ranges:	192.168.48.0/20
+  Protocols and ports:	tcp: 22
+  
+  Click CREATE
+ 
+Task 4: Create and configure Cloud SQL Instance
+
+  In the Cloud Console, navigate to SQL
+  Click CREATE INSTANCE
+  Click Choose MySQL
+  Use the following parameters to create the instance:
+  Name:	griffin-dev-db
+  Region:	us-east1
+  Zone:	us-east1-b
+  Root password:[anything]
+
+  Click Create.
+  
+  Click the griffin-dev-db in the SQL pane after it has created
+  Under Connect to this instance, click on Connect using Cloud Shell
+  Go back to the Cloud Shell, run:
+    gcloud sql connect griffin-dev-db --user=root --quiet
+  Enter the Root password
+  In the SQL console, run the following query to create the wordpress database:
+     CREATE DATABASE wordpress;
+     GRANT ALL PRIVILEGES ON wordpress.* TO "wp_user"@"%" IDENTIFIED BY "stormwind_rules";
+     FLUSH PRIVILEGES;
+  Enter exit to quit the SQL shell.
+  
+Task 5: Create Kubernetes cluster
+  Create a 2 node cluster (n1-standard-4) called griffin-dev, in the griffin-dev-wp subnet, and in the zone us-east1-b
+ 
+Task 6: Prepare the Kubernetes cluster
+  
+  In the Cloud Shell, use the following command to copy the files for the Kubernetes:
+  gsutil cp -r gs://cloud-training/gsp321/wp-k8s ~/
+  
+  Open wp-k8s/wp-env.yaml with the Cloud Shell Editor:
+  cd ~/wp-k8s
+  edit wp-env.yaml
+  
+  Replace username_goes_here and password_goes_here to wp_user and stormwind_rules, respectively.
+  Save the file change.
+  After the Kubernetes cluster has created, click on the Connect button
+  
+  Run the following command to connect the cluster:
+    gcloud container clusters get-credentials griffin-dev --zone=us-east1
+  
+  Deploy the configuration to the cluster using:
+   kubectl apply -f wp-env.yaml
+   
+  Use the command below to create the key, and then add the key to the Kubernetes environment:
+     gcloud iam service-accounts keys create key.json \
+         --iam-account=cloud-sql-proxy@$GOOGLE_CLOUD_PROJECT.iam.gserviceaccount.com
+         
+     kubectl create secret generic cloudsql-instance-credentials \
+         --from-file key.json
+ 
+Task 7: Create a WordPress deployment
+  Open wp-k8s/wp-deployment.yaml with the Cloud Shell Editor
+  cd ~/wp-k8s
+  edit wp-deployment.yaml
+  
+  Replace YOUR_SQL_INSTANCE with griffin-dev-db’s Instance connection name
+  Save the file change.
+  Go back to the Cloud Shell, run the following commands:
+    kubectl create -f wp-deployment.yaml
+    kubectl create -f wp-service.yaml
+ 
+Task 8: Enable monitoring
+  Go back to the Cloud Console, and navigate to Monitoring
+  In the Monitoring console, click Uptime checks in the left pane
+
+  Click CREATE UPTIME CHECK
+
+  Configure using the following parameters:
+  Title	WordPress Uptime
+  Check Type	HTTP
+  Resource Type	URL
+  Hostname	YOUR-WORDPRESS_ENDPOINT
+  Path	/
+  
+  click TEST and then SAVE
+  
+Task 9: Provide access for an additional engineer
+
+  In the Cloud Console, navigate to IAM & Admin > IAM
+  Click +ADD
+  copy and paste the second user account for the lab to the New members field
+  In the Role dropdown, select Project > Editor
+
+  Click SAVE
